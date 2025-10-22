@@ -1,0 +1,7 @@
+﻿unix_ms,unix_ms,unix_ms,unix_ms,unix_ms,unix_ms,unix_ms,frame,rel_timestamp,event,overlap_counter
+1758753050633,7510,0,Start,0
+1758753056499,7667,5.872375,Overlap,1
+1758753057748,7702,7.119659,Overlap,2
+1758753058988,7736,8.359528,Overlap,3
+1758753060202,7770,9.573425,Overlap,4
+1758753062206,7823,11.57721,End,4

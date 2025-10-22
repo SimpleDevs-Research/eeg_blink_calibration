@@ -1,0 +1,6 @@
+TimeStamp,Delta_TP9,Delta_AF7,Delta_AF8,Delta_TP10,Theta_TP9,Theta_AF7,Theta_AF8,Theta_TP10,Alpha_TP9,Alpha_AF7,Alpha_AF8,Alpha_TP10,Beta_TP9,Beta_AF7,Beta_AF8,Beta_TP10,Gamma_TP9,Gamma_AF7,Gamma_AF8,Gamma_TP10,RAW_TP9,RAW_AF7,RAW_AF8,RAW_TP10,AUX_RIGHT,AUX_LEFT,Accelerometer_X,Accelerometer_Y,Accelerometer_Z,Gyro_X,Gyro_Y,Gyro_Z,PPG_Ambient,PPG_IR,PPG_Red,Heart_Rate,HeadBandOn,HSI_TP9,HSI_AF7,HSI_AF8,HSI_TP10,Battery,Elements,unix_sec,unix_ms,rel_sec,rel_ms
+2025-09-17 18:09:21.879,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/muse/elements/blink,1758146961.879,1758146961879,1.181999921798706,1182
+2025-09-17 18:09:29.023,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/muse/elements/blink,1758146969.023,1758146969023,8.325999975204468,8326
+2025-09-17 18:09:31.141,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/muse/elements/blink,1758146971.141,1758146971141,10.444000005722046,10444
+2025-09-17 18:09:33.364,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/muse/elements/blink,1758146973.364,1758146973364,12.66700005531311,12667
+2025-09-17 18:09:35.617,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/muse/elements/blink,1758146975.617,1758146975617,14.920000076293945,14920
