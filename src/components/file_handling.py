@@ -24,5 +24,9 @@ def mkdirs(_DIR:str, delete_existing:bool=True):
     # Create a new empty directory
     os.makedirs(_DIR, exist_ok=True)
 
-    # Return to indicate completion
-    return
+    # Return the directory to indicate completion
+    return _DIR
+
+# Delete a directory and all files in it
+def deletedirs(_DIR:str):
+    if os.path.exists(_DIR): shutil.rmtree(_DIR)
