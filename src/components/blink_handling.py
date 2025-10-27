@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from scipy.stats import zscore
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, savgol_filter
 
 
 """
@@ -30,24 +30,17 @@ def peak_starts_by_scan(signal, peaks, rel_thresh=0.1):
     return np.array(starts)
 
 """
-Given the x-axis data (expected: unix timestamps) and y-axis data (expected: raw eye data of the eye's y-position relative to the screen), find the peaks and valleys associated with this data. We do not make any assumptions about the data itself.
+Given the x-axis and y-axis data, find the peaks and valleys associated with this data. We do not make any assumptions about the data itself.
 Returns: a LIST of peaks and valleys 
 """
-def calculate_peaks(
-        _X, 
-        _Y, 
-        peak_height=0.5, 
-        peak_prominence=1, 
-        peak_width=0, 
-        valley_height=0.5, 
-        valley_prominence=1, 
-        valley_width=0):
-    """
-    Given `_X` (expected: unix timestamps) and `_Y` (expected: raw eye data of the eye's y-position relative to the screen)...
-    Find the peaks and valleys associated with this data. We do not make any assumptions about the data itself.
-    Returns: a LIST of peaks and valleys 
-    """
-
+def calculate_peaks(_X, _Y, 
+                    peak_height=0.5, 
+                    peak_prominence=1, 
+                    peak_width=0, 
+                    valley_height=0.5, 
+                    valley_prominence=1, 
+                    valley_width=0):
+    
     # Step 1: Using `scipy.stats.zscore()`, calculate the z-scores of this data. Get its inversion too.
     z = zscore(_Y)
     inv_z = [v*-1 for v in z]
@@ -85,17 +78,20 @@ def calculate_peaks(
         results = sorted(combined, key=lambda v: v['x']) 
 
     # Step 6: Return our findings
-    return results, peaks, valleys
+    return results, peaks, valleys, z
 
 
 """
 Given a participant's unique ID and the global directory where data is stored, get the estimated blinks from this participant's VR data. 
 Returns: a dataframe of all first peaks and valleys in each trial
 """
-def detect_vr_blinks(
-        _DATA_DIR:str,
-        _PARTICIPANT:str,
-        **peak_args):
+def detect_vr_blinks(_DATA_DIR:str, _PARTICIPANT:str,
+                     peak_height=0.5, 
+                     peak_prominence=1, 
+                     peak_width=0, 
+                     valley_height=0.5, 
+                     valley_prominence=1, 
+                     valley_width=0):
     
     # Define a global directory for this participant
     pdir = f"./{_DATA_DIR}/{_PARTICIPANT}/"
@@ -132,7 +128,13 @@ def detect_vr_blinks(
             y = _eye['gaze_target_screen_pos_y'].to_list()
             
             # Use `find_peaks()` we've created just above to detect combined peaks
-            combined, peaks, valleys = calculate_peaks(x, y, **peak_args)
+            combined, peaks, valleys, z = calculate_peaks(x, y, 
+                                                       peak_height=peak_height, 
+                                                       peak_prominence=peak_prominence, 
+                                                       peak_width=peak_width, 
+                                                       valley_height=valley_height, 
+                                                       valley_prominence=valley_prominence, 
+                                                       valley_width=valley_width)
 
             # Only contribute to `all_results` if `combined` is not None
             if combined is not None: 
@@ -148,3 +150,97 @@ def detect_vr_blinks(
 
     # return the dfs
     return first_peaks, df
+
+def detect_eeg_blinks(_DATA_DIR:str, _PARTICIPANT:str,
+                      window_length=75,
+                      polyorder=3,
+                      mode='nearest',
+                      peak_height=0.5, 
+                      peak_prominence=1, 
+                      peak_width=0, 
+                      valley_height=0.5, 
+                      valley_prominence=1, 
+                      valley_width=0,
+                      smooth_data:bool=True):
+    
+    # Define a global directory for this participant
+    pdir = f"./{_DATA_DIR}/{_PARTICIPANT}/"
+
+    # Get trials of this participant
+    trials = pd.read_csv(os.path.join(pdir, "trials.csv"))
+    
+    # list of outputs
+    all_results = {'TP9':[], 'TP10':[]}
+
+    # iterate through trials
+    for _, row in trials.iterrows():
+        # Read the eye data for each trial
+        trial_id = row['trial_id']
+        tdir = os.path.join(pdir, f"{trial_id}", "calibration")
+
+        # Read the necessary datasets
+        eeg_raw = pd.read_csv(os.path.join(tdir, 'eeg_raw.csv'))
+        brdf = pd.read_csv(os.path.join(tdir, "blink_ranges.csv"))
+
+        # From `eeg_raw`, get the start and end milliseconds. Then filter the rows of `eeg_raw`
+        start_ms = eeg_raw['unix_ms'].iloc[0] + 5000
+        end_ms = eeg_raw['unix_ms'].iloc[-1] - 500
+        eeg = eeg_raw[eeg_raw['unix_ms'].between(start_ms, end_ms)]
+        
+        # Iterate through each blink range
+        for _, row in brdf.iterrows():
+
+            # Get necessary timestamps
+            overlap_counter = row['overlap_counter']
+            range_start_ms = row['start_unix_ms']
+            range_end_ms = row['end_unix_ms']
+            _eeg = eeg[eeg['unix_ms'].between(range_start_ms, range_end_ms)]
+
+            # Get the relevant x and y data
+            x = _eeg['unix_ms'].to_list()
+            tp9 = _eeg['TP9'].to_list()
+            tp10 = _eeg['TP10'].to_list()
+
+            # Smooth the data, if prompted
+            if smooth_data:
+                tp9 = savgol_filter(tp9, window_length=window_length, polyorder=polyorder, mode=mode)
+                tp10 = savgol_filter(tp10, window_length=window_length, polyorder=polyorder, mode=mode)
+
+            # Calculate the blinks
+            _, _, tp9_valleys, tp9z = calculate_peaks(
+                x, tp9, 
+                peak_height=peak_height, 
+                peak_prominence=peak_prominence, 
+                peak_width=peak_width, 
+                valley_height=valley_height, 
+                valley_prominence=valley_prominence, 
+                valley_width=valley_width )
+            _, _, tp10_valleys, tp10z = calculate_peaks(
+                x, tp10,
+                peak_height=peak_height, 
+                peak_prominence=peak_prominence, 
+                peak_width=peak_width, 
+                valley_height=valley_height, 
+                valley_prominence=valley_prominence, 
+                valley_width=valley_width )
+            
+            # Handle cases
+            if tp9_valleys is not None: 
+                results = [{'trial_id':trial_id, 'overlap_counter':overlap_counter, **c} for c in tp9_valleys]
+                all_results['TP9'].extend(results)
+            if tp10_valleys is not None: 
+                results = [{'trial_id':trial_id, 'overlap_counter':overlap_counter, **c} for c in tp10_valleys]
+                all_results['TP10'].extend(results)
+
+    # We'll combine all our results into single dataframes for TP9 and TP10
+    tp9_df = pd.DataFrame(all_results['TP9'])
+    tp9_df = tp9_df.groupby(['trial_id', 'overlap_counter'], group_keys=False).apply(lambda g: g.sort_values('x'))
+    tp10_df = pd.DataFrame(all_results['TP10'])
+    tp10_df = tp10_df.groupby(['trial_id', 'overlap_counter'], group_keys=False).apply(lambda g: g.sort_values('x'))
+
+    # We'll extract the first of each trial and overlap
+    first_valleys_tp9 = tp9_df.groupby(['trial_id', 'overlap_counter'], as_index=False).first()
+    first_valleys_tp10 = tp10_df.groupby(['trial_id', 'overlap_counter'], as_index=False).first()
+
+    # return the dfs
+    return first_valleys_tp9, first_valleys_tp10, tp9_df, tp10_df, tp9z, tp10z
