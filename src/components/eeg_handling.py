@@ -60,3 +60,54 @@ def separate( df:pd.DataFrame, time_colnames=['unix_sec','unix_ms', 'rel_sec', '
     
     # Return
     return raw_df, processed_df
+
+def melt_raw_eeg( df:pd.DataFrame, timestamp_cols=['unix_ms'] ):
+
+    processed_colnames = ['AF7', 'AF8', 'TP9', 'TP10']
+
+    colnames = timestamp_cols + processed_colnames
+    #processed_colnames.insert(0, timestamp_col)
+
+    # Restrict the columns
+    #restricted_df = df[processed_colnames]
+    restricted_df = df[colnames]
+
+    # Melt the dataframe
+    long_df = restricted_df.melt(id_vars=timestamp_cols,
+                      var_name='channel',
+                      value_name='voltage')
+
+    # return 
+    return long_df
+
+def melt_processed_eeg( df:pd.DataFrame, timestamp_cols=['unix_ms'] ):
+
+    processed_colnames = [
+        'Delta_TP9','Delta_TP10','Delta_AF7','Delta_AF8',
+        'Theta_TP9', 'Theta_TP10', 'Theta_AF7', 'Theta_AF8',
+        'Alpha_TP9', 'Alpha_TP10', 'Alpha_AF7', 'Alpha_AF8',
+        'Beta_TP9', 'Beta_TP10', 'Beta_AF7', 'Beta_AF8',
+        'Gamma_TP9', 'Gamma_TP10', 'Gamma_AF7', 'Gamma_AF8'
+    ]
+
+    colnames = timestamp_cols + processed_colnames
+    #processed_colnames.insert(0, timestamp_col)
+
+    # Restrict the columns
+    #restricted_df = df[processed_colnames]
+    restricted_df = df[colnames]
+
+    # Melt the dataframe
+    long_df = restricted_df.melt(id_vars=timestamp_cols,
+                      var_name='band_channel',
+                      value_name='power')
+    
+    # Split the combined "band_channel" into two separate columns
+    long_df[['band', 'channel']] = long_df['band_channel'].str.split('_', expand=True)
+
+    # Reorder the columns
+    final_colnames = timestamp_cols + ['channel', 'band', 'power']
+    long_df = long_df[final_colnames]
+
+    # return 
+    return long_df
